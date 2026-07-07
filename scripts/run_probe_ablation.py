@@ -91,8 +91,11 @@ def main() -> None:
     parser.add_argument("--probe-steps", type=int, default=400)
     parser.add_argument("--eval-batches", type=int, default=20)
     parser.add_argument("--seeds", type=int, nargs="+", default=[1337, 2024, 7])
+    parser.add_argument("--variants", nargs="+", default=list(VARIANTS), choices=list(VARIANTS),
+                        help="subset of variants to run (default: all four)")
     parser.add_argument("--out", default="runs/probe_ablation")
     args = parser.parse_args()
+    variants = {k: VARIANTS[k] for k in args.variants}
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -104,13 +107,13 @@ def main() -> None:
     dtype = pick_dtype(base.dtype)
     tok = CharTokenizer.load(base.tokenizer_path)
     vocab = tok.vocab_size
-    n_runs = len(VARIANTS) * len(args.seeds)
+    n_runs = len(variants) * len(args.seeds)
     print(f"base={args.base} device={device} dtype={dtype} vocab={vocab} "
           f"steps={args.steps} seeds={args.seeds} runs={n_runs}", flush=True)
 
     rows = []
     t_start = time.time()
-    for variant, (aw, ow, bw) in VARIANTS.items():
+    for variant, (aw, ow, bw) in variants.items():
         for seed in args.seeds:
             cfg = TrainConfig.from_json(args.base)
             cfg.anchor_weight, cfg.order_free_weight, cfg.bridge_weight = aw, ow, bw
@@ -136,7 +139,7 @@ def main() -> None:
                   f"(elapsed {(time.time()-t_start)/60:.1f}m)", flush=True)
 
     agg = {}
-    for variant in VARIANTS:
+    for variant in variants:
         vals = {k: [r[k] for r in rows if r["variant"] == variant and k in r] for k in METRIC_KEYS}
         agg[variant] = {
             k: {"mean": float(np.mean(v)), "std": float(np.std(v, ddof=1)) if len(v) > 1 else 0.0, "n": len(v)}
@@ -146,19 +149,20 @@ def main() -> None:
 
     print("\n================ AGGREGATE (mean +/- std over seeds) ================", flush=True)
     print("variant".ljust(16) + "".join(k.rjust(20) for k in METRIC_KEYS), flush=True)
-    for variant in VARIANTS:
+    for variant in variants:
         line = variant.ljust(16)
         for k in METRIC_KEYS:
             s = agg[variant][k]
             line += f"{s['mean']:.4f}±{s['std']:.4f}".rjust(20)
         print(line, flush=True)
-    a, d = agg["A_baseline"], agg["D_full"]
-    print("\n---- D_full vs A_baseline (Δ = D − A) ----", flush=True)
-    for k in METRIC_KEYS:
-        delta = d[k]["mean"] - a[k]["mean"]
-        noise = (a[k]["std"] ** 2 + d[k]["std"] ** 2) ** 0.5
-        sig = "SIGNIFICANT" if noise > 0 and abs(delta) > 2 * noise else "within noise"
-        print(f"  {k:16s} Δ={delta:+.4f}  (±{noise:.4f} combined)  {sig}", flush=True)
+    if "A_baseline" in variants and "D_full" in variants:
+        a, d = agg["A_baseline"], agg["D_full"]
+        print("\n---- D_full vs A_baseline (Δ = D − A) ----", flush=True)
+        for k in METRIC_KEYS:
+            delta = d[k]["mean"] - a[k]["mean"]
+            noise = (a[k]["std"] ** 2 + d[k]["std"] ** 2) ** 0.5
+            sig = "SIGNIFICANT" if noise > 0 and abs(delta) > 2 * noise else "within noise"
+            print(f"  {k:16s} Δ={delta:+.4f}  (±{noise:.4f} combined)  {sig}", flush=True)
     print(f"\ntotal wall time: {(time.time() - t_start)/60:.1f} min", flush=True)
 
 
