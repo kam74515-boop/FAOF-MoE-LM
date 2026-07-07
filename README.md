@@ -99,11 +99,21 @@ uv run python scripts/run_probe_ablation.py \
   --out runs/probe_ablation_full
 ```
 
-Note: a first probe-corrected sweep (18M, 2000 steps, 13.8M tokens, 3 seeds)
-found that only the **anchor** loss moves the representation (and it is
-essentially multi-token prediction); **order-free** was inert and **bridge**
-degraded next-token loss for no probe gain. Treat the auxiliary bundle as
-unproven until a larger run says otherwise.
+Note: two probe-corrected sweeps (18M, 3 seeds — one at 2000 steps / 13.8M
+tokens, one at 6000 steps / 51M tokens) agree, and the effect only sharpens with
+scale:
+
+- The **anchor** loss (config B) gives a real, growing representational gain —
+  `anchor_top5@8` +0.009 (0.165→0.174) and `order_recall` +0.009 at 6000 steps —
+  for a negligible next-token cost (~+0.006). It is essentially multi-token
+  prediction, a known-good trick.
+- **order-free** (C) is inert: B ≈ C on every metric, including `order_recall`
+  itself.
+- **bridge** (D) adds ~+0.037 to next-token loss for ~zero probe gain.
+
+Net: **anchor-only (B) dominates the full bundle (D)** — same probe gains at a
+seventh of the next-token cost. The two novel FAOF components (order-free,
+bridge) do not pay off at these scales; ship B, or rethink C/D.
 
 Generate and run a toy ablation:
 
@@ -243,10 +253,18 @@ uv run python scripts/run_probe_ablation.py \
   --out runs/probe_ablation_full
 ```
 
-注：首轮探针校正实验（18M、2000 步、1380 万 token、3 seed）发现，只有 **anchor**
-损失能改变表示（且它本质就是 multi-token prediction）；**order-free** 完全惰性，
-**bridge** 拉高了下一 token 损失却在探针上零收益。在更大规模实验给出相反结论之前，
-把这套辅助 bundle 视作未经证实。
+注：两轮探针校正实验（18M、3 seed —— 一轮 2000 步 / 1380 万 token，一轮 6000 步 /
+5100 万 token）结论一致，且规模越大越清晰：
+
+- **anchor** 损失（配置 B）带来真实且随规模增长的表示增益 —— 6000 步下
+  `anchor_top5@8` +0.009（0.165→0.174）、`order_recall` +0.009，而下一 token 代价
+  可忽略（约 +0.006）。它本质就是 multi-token prediction，一个已知有效的技巧。
+- **order-free**（C）完全惰性：B ≈ C 在每个指标上都成立，连 `order_recall` 本身也是。
+- **bridge**（D）给下一 token 损失加了约 +0.037，探针上却几乎零收益。
+
+结论：**anchor-only（B）全面压制完整 bundle（D）** —— 同样的探针增益，只需七分之一的
+下一 token 代价。FAOF 的两个新颖组件（order-free、bridge）在这些规模下都不划算；
+要么直接用 B，要么重新设计 C/D。
 
 生成并运行一个玩具规模的消融实验：
 
