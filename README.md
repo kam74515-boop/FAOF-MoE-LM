@@ -74,12 +74,46 @@ Train the same base checkpoint with these loss weights:
 | C anchor+order | 0.2 | 0.1 | 0.0 |
 | D anchor+order+bridge | 0.2 | 0.1 | 0.2 |
 
-Success criteria:
+> **⚠️ Evaluate with the frozen-backbone probe, not `faof.eval`.**
+> In configs A/B/C the anchor/order/bridge heads get zero loss weight, so they
+> stay at random init. Comparing a *trained* head (D) against a *random* head
+> (A) with `faof.eval` is meaningless — it exaggerates the effect by orders of
+> magnitude (e.g. `anchor_top5@8`: A=0.0003 vs D=0.084, a fake 280× "win").
+> The valid comparison freezes each trained backbone and trains a fresh,
+> identical probe head, isolating representation quality. Use
+> [`src/faof/probe.py`](src/faof/probe.py) and the multi-seed driver
+> [`scripts/run_probe_ablation.py`](scripts/run_probe_ablation.py).
 
-- Anchor `top5@8` and `top5@16` improve over a baseline probe.
-- Order-free future token recall improves over anchor-only.
-- Bridge token accuracy improves over next-token continuation for infill spans.
+Success criteria (measured with the probe above, mean ± std over ≥3 seeds):
+
+- Anchor `top5@8` / `top5@16` from a fresh probe on the FAOF backbone beat the
+  same probe on the baseline backbone, by more than the seed-to-seed noise.
+- Order-free recall and bridge accuracy add value *over anchor-only* (B), not
+  just over the untrained baseline.
 - Validation next-token loss does not degrade by more than about 3%.
+
+```bash
+# after training A/B/C/D, probe-compare them
+uv run python scripts/run_probe_ablation.py \
+  --base configs/wiki_full.json --steps 6000 --seeds 1337 2024 7 \
+  --out runs/probe_ablation_full
+```
+
+Note: two probe-corrected sweeps (18M, 3 seeds — one at 2000 steps / 13.8M
+tokens, one at 6000 steps / 51M tokens) agree, and the effect only sharpens with
+scale:
+
+- The **anchor** loss (config B) gives a real, growing representational gain —
+  `anchor_top5@8` +0.009 (0.165→0.174) and `order_recall` +0.009 at 6000 steps —
+  for a negligible next-token cost (~+0.006). It is essentially multi-token
+  prediction, a known-good trick.
+- **order-free** (C) is inert: B ≈ C on every metric, including `order_recall`
+  itself.
+- **bridge** (D) adds ~+0.037 to next-token loss for ~zero probe gain.
+
+Net: **anchor-only (B) dominates the full bundle (D)** — same probe gains at a
+seventh of the next-token cost. The two novel FAOF components (order-free,
+bridge) do not pay off at these scales; ship B, or rethink C/D.
 
 Generate and run a toy ablation:
 
@@ -197,12 +231,40 @@ uv run python -m faof.train --config configs/wiki_smoke.json
 | C 锚点+集合 | 0.2 | 0.1 | 0.0 |
 | D 锚点+集合+桥接 | 0.2 | 0.1 | 0.2 |
 
-成功标准：
+> **⚠️ 用冻结骨干探针评估，不要用 `faof.eval`。**
+> A/B/C 配置里 anchor/order/bridge 头的损失权重为 0，从头到尾停留在随机初始化。
+> 用 `faof.eval` 拿*训练过*的头（D）去比*随机*头（A），毫无意义——会把效果夸大几个数量级
+> （例如 `anchor_top5@8`：A=0.0003 对 D=0.084，虚假的 280 倍"提升"）。
+> 正确做法是冻结每个训练好的骨干、训练一个全新且完全相同的探针头，只比较表示质量。
+> 见 [`src/faof/probe.py`](src/faof/probe.py) 和多种子驱动脚本
+> [`scripts/run_probe_ablation.py`](scripts/run_probe_ablation.py)。
 
-- 锚点 `top5@8` 和 `top5@16` 优于基线探针。
-- 顺序无关的未来 token 召回率优于仅锚点方案。
-- 填充跨度上，桥接 token 准确率优于下一 token 续写。
+成功标准（用上面的探针测量，≥3 个 seed 的均值 ± 标准差）：
+
+- FAOF 骨干上的全新探针，其锚点 `top5@8` / `top5@16` 要超过同样探针在基线骨干上的结果，
+  且差距大于种子间噪声。
+- 顺序无关召回率和桥接准确率要相对 *anchor-only（B）* 有增益，而不只是赢过未训练的基线。
 - 验证集下一 token 损失退化不超过约 3%。
+
+```bash
+# 训练完 A/B/C/D 后，用探针对比
+uv run python scripts/run_probe_ablation.py \
+  --base configs/wiki_full.json --steps 6000 --seeds 1337 2024 7 \
+  --out runs/probe_ablation_full
+```
+
+注：两轮探针校正实验（18M、3 seed —— 一轮 2000 步 / 1380 万 token，一轮 6000 步 /
+5100 万 token）结论一致，且规模越大越清晰：
+
+- **anchor** 损失（配置 B）带来真实且随规模增长的表示增益 —— 6000 步下
+  `anchor_top5@8` +0.009（0.165→0.174）、`order_recall` +0.009，而下一 token 代价
+  可忽略（约 +0.006）。它本质就是 multi-token prediction，一个已知有效的技巧。
+- **order-free**（C）完全惰性：B ≈ C 在每个指标上都成立，连 `order_recall` 本身也是。
+- **bridge**（D）给下一 token 损失加了约 +0.037，探针上却几乎零收益。
+
+结论：**anchor-only（B）全面压制完整 bundle（D）** —— 同样的探针增益，只需七分之一的
+下一 token 代价。FAOF 的两个新颖组件（order-free、bridge）在这些规模下都不划算；
+要么直接用 B，要么重新设计 C/D。
 
 生成并运行一个玩具规模的消融实验：
 
