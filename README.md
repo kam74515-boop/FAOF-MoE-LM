@@ -13,7 +13,38 @@ The model is a causal decoder with auxiliary heads:
 - **`order_free`**: predicts the unordered *set* of tokens in a future window.
 - **`bridge`**: uses the current hidden state plus soft future-anchor embeddings to reconstruct the span between the current position and a future anchor.
 
+![The three FAOF auxiliary heads: anchor predicts the single token k steps ahead, order_free predicts the unordered set of tokens in a future window, bridge reconstructs the span up to a soft future anchor.](docs/faof-heads.svg)
+
 The default smoke config is tiny and only proves that the data, losses, and evaluation loop work. Use `configs/mvp_120m.json` as the starting point for a real 100M-scale run on a GPU machine.
+
+## Results (probe-corrected)
+
+Two multi-seed ablations — 18M params, 3 seeds, at 2000 steps / 13.8M tokens and
+at 6000 steps / 51M tokens — evaluated with the **frozen-backbone probe** (see
+[MVP Ablation](#mvp-ablation) for why `faof.eval` is invalid here) give a
+consistent, scale-confirmed picture. Deltas below are the effect of turning each
+loss on, at the 6000-step scale:
+
+| loss added | next-token loss Δ (↓ better) | anchor probe `top5@8` Δ | order recall Δ | verdict |
+| --- | ---: | ---: | ---: | --- |
+| A → B  (anchor) | +0.006 | **+0.009** | **+0.009** | ✅ real gain, grows with scale |
+| B → C  (order-free) | +0.000 | −0.000 | −0.000 | ⬜ inert |
+| C → D  (bridge) | **+0.037** | +0.001 | +0.002 | ❌ hurts the LM for no probe gain |
+
+**Takeaways:**
+
+- The **anchor** head is the only auxiliary loss that improves the backbone, and
+  its benefit *grows* with scale. It is essentially multi-token prediction.
+- **order-free** is inert (B ≈ C on every metric); **bridge** degrades
+  next-token loss for ~zero probe gain.
+- **anchor-only (B) dominates the full bundle (D)** — the same representational
+  gain at ~1/7 the next-token cost.
+
+Honest status: FAOF's two novel components (order-free, bridge) do **not** yet
+validate; the part that works (anchor) is prior art. These numbers are at 18M /
+char-level Chinese — a benefit for order-free/bridge that only emerges at much
+larger scale is not ruled out. Reproduce with
+[`scripts/run_probe_ablation.py`](scripts/run_probe_ablation.py).
 
 ## Quick Smoke Test
 
@@ -170,7 +201,35 @@ uv run python scripts/mix_corpora.py \
 - **`order_free`**：预测未来窗口内 token 的无序*集合*。
 - **`bridge`**：利用当前隐状态加上软未来锚点嵌入，重建当前位置与未来锚点之间的跨度。
 
+![FAOF 的三个辅助头：anchor 预测第 k 步之后的那一个 token，order_free 预测未来窗口内 token 的无序集合，bridge 重建当前位置到软未来锚点之间的跨度。](docs/faof-heads.svg)
+
 默认 smoke 配置非常小，仅用于验证数据、损失和评估流程能跑通。在 GPU 机器上做真正的 1 亿参数级训练时，请以 `configs/mvp_120m.json` 为起点。
+
+## 实验结论（探针校正）
+
+两轮多种子消融 —— 18M 参数、3 seed，分别在 2000 步 / 1380 万 token 和
+6000 步 / 5100 万 token —— 用**冻结骨干探针**评估（为什么 `faof.eval` 在这里无效，
+见 [MVP 消融实验](#mvp-消融实验)），给出一致且随规模确认的结论。下表是逐个打开每种损失
+的增量（6000 步规模）：
+
+| 加入的损失 | next-token 损失 Δ（↓ 更好） | anchor 探针 `top5@8` Δ | order recall Δ | 判定 |
+| --- | ---: | ---: | ---: | --- |
+| A → B（anchor） | +0.006 | **+0.009** | **+0.009** | ✅ 真实增益，随规模放大 |
+| B → C（order-free） | +0.000 | −0.000 | −0.000 | ⬜ 惰性 |
+| C → D（bridge） | **+0.037** | +0.001 | +0.002 | ❌ 拖累主任务，探针零收益 |
+
+**要点：**
+
+- **anchor** 头是唯一能改善骨干的辅助损失，且增益**随规模增长**。它本质就是 multi-token
+  prediction。
+- **order-free** 惰性（B ≈ C 在每个指标上都成立）；**bridge** 拉高 next-token 损失、
+  探针几乎零收益。
+- **anchor-only（B）全面压制完整 bundle（D）** —— 同样的表示增益，只需约 1/7 的
+  next-token 代价。
+
+诚实结论：FAOF 的两个新颖组件（order-free、bridge）**尚未**得到验证；有效的部分（anchor）
+是前人已有工作。这些数字是 18M / 中文字符级下测的 —— 不排除 order-free/bridge 在更大规模
+才显现好处。复现见 [`scripts/run_probe_ablation.py`](scripts/run_probe_ablation.py)。
 
 ## 快速冒烟测试
 
