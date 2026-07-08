@@ -1,0 +1,69 @@
+<svg viewBox="0 0 700 600" xmlns="http://www.w3.org/2000/svg" role="img" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+<title>FAOF auxiliary heads: what anchor, order_free and bridge each predict</title>
+<desc>From position t in the sentence 今天天气很好我去, anchor predicts the single token k steps ahead, order_free predicts the unordered set of tokens in a future window, and bridge reconstructs the span up to a soft future anchor. Anchor helps, order_free is inert, bridge hurts.</desc>
+<defs>
+<marker id="agrn" markerWidth="9" markerHeight="9" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#2E7D46"/></marker>
+<marker id="ared" markerWidth="9" markerHeight="9" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#C0392B"/></marker>
+</defs>
+<rect x="6" y="6" width="688" height="588" rx="16" fill="#FCFBF9" stroke="#E3E0D9"/>
+<text x="28" y="36" font-size="19" font-weight="500" fill="#2A2A28">Three FAOF auxiliary heads — what each predicts from position t</text>
+<text x="28" y="56" font-size="12.5" fill="#8A8578">example sentence 今 天 天 气 很 好 我 去 · now = position t (token 天)</text>
+
+<!-- ================= PANEL 1: anchor ================= -->
+<rect x="16" y="72" width="668" height="164" rx="12" fill="#F4FAF5" stroke="#DCEEDF"/>
+<text x="28" y="102" font-size="16" font-weight="500" fill="#14532D" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">anchor</text>
+<rect x="576" y="86" width="96" height="24" rx="12" fill="#E4F3E8" stroke="#2E7D46"/>
+<text x="624" y="102" font-size="12.5" font-weight="500" fill="#14532D" text-anchor="middle">✓ helps</text>
+<text x="28" y="124" font-size="13" fill="#4E6B57">predicts the single token k steps ahead (k = 2, 4, 8, 16) — this is multi-token prediction</text>
+<g>
+<rect x="40" y="176" width="76" height="44" rx="7" fill="#F2F0EB" stroke="#D8D4CC"/><text x="78" y="206" font-size="22" fill="#2A2A28" text-anchor="middle">今</text>
+<rect x="120" y="176" width="76" height="44" rx="7" fill="#E6F1FB" stroke="#0C447C"/><text x="158" y="206" font-size="22" fill="#0C447C" text-anchor="middle">天</text><text x="158" y="234" font-size="11" fill="#0C447C" text-anchor="middle">now t</text>
+<rect x="200" y="176" width="76" height="44" rx="7" fill="#F2F0EB" stroke="#D8D4CC"/><text x="238" y="206" font-size="22" fill="#2A2A28" text-anchor="middle">天</text>
+<rect x="280" y="176" width="76" height="44" rx="7" fill="#F2F0EB" stroke="#D8D4CC"/><text x="318" y="206" font-size="22" fill="#2A2A28" text-anchor="middle">气</text>
+<rect x="360" y="176" width="76" height="44" rx="7" fill="#F2F0EB" stroke="#D8D4CC"/><text x="398" y="206" font-size="22" fill="#2A2A28" text-anchor="middle">很</text>
+<rect x="440" y="176" width="76" height="44" rx="7" fill="#E4F3E8" stroke="#2E7D46"/><text x="478" y="206" font-size="22" fill="#14532D" text-anchor="middle">好</text><text x="478" y="234" font-size="11" fill="#14532D" text-anchor="middle">target</text>
+<rect x="520" y="176" width="76" height="44" rx="7" fill="#F2F0EB" stroke="#D8D4CC"/><text x="558" y="206" font-size="22" fill="#2A2A28" text-anchor="middle">我</text>
+<rect x="600" y="176" width="76" height="44" rx="7" fill="#F2F0EB" stroke="#D8D4CC"/><text x="638" y="206" font-size="22" fill="#2A2A28" text-anchor="middle">去</text>
+</g>
+<path d="M158,174 Q318,132 478,174" fill="none" stroke="#2E7D46" stroke-width="2" marker-end="url(#agrn)"/>
+<text x="318" y="150" font-size="12.5" font-weight="500" fill="#14532D" text-anchor="middle">k = 4</text>
+
+<!-- ================= PANEL 2: order_free ================= -->
+<rect x="16" y="242" width="668" height="164" rx="12" fill="#F7F6F3" stroke="#E6E3DC"/>
+<text x="28" y="272" font-size="16" font-weight="500" fill="#4A453B" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">order_free</text>
+<rect x="576" y="256" width="96" height="24" rx="12" fill="#EDEBE6" stroke="#B4AFA4"/>
+<text x="624" y="272" font-size="12.5" font-weight="500" fill="#5C574E" text-anchor="middle">– inert</text>
+<text x="28" y="294" font-size="13" fill="#6B675E">predicts the unordered set of tokens in the next window — order does not matter</text>
+<g>
+<rect x="40" y="346" width="76" height="44" rx="7" fill="#F2F0EB" stroke="#D8D4CC"/><text x="78" y="376" font-size="22" fill="#2A2A28" text-anchor="middle">今</text>
+<rect x="120" y="346" width="76" height="44" rx="7" fill="#E6F1FB" stroke="#0C447C"/><text x="158" y="376" font-size="22" fill="#0C447C" text-anchor="middle">天</text><text x="158" y="404" font-size="11" fill="#0C447C" text-anchor="middle">now t</text>
+<rect x="200" y="346" width="76" height="44" rx="7" fill="#EDEBE6" stroke="#B4AFA4"/><text x="238" y="376" font-size="22" fill="#4A453B" text-anchor="middle">天</text>
+<rect x="280" y="346" width="76" height="44" rx="7" fill="#EDEBE6" stroke="#B4AFA4"/><text x="318" y="376" font-size="22" fill="#4A453B" text-anchor="middle">气</text>
+<rect x="360" y="346" width="76" height="44" rx="7" fill="#EDEBE6" stroke="#B4AFA4"/><text x="398" y="376" font-size="22" fill="#4A453B" text-anchor="middle">很</text>
+<rect x="440" y="346" width="76" height="44" rx="7" fill="#EDEBE6" stroke="#B4AFA4"/><text x="478" y="376" font-size="22" fill="#4A453B" text-anchor="middle">好</text>
+<rect x="520" y="346" width="76" height="44" rx="7" fill="#F2F0EB" stroke="#D8D4CC"/><text x="558" y="376" font-size="22" fill="#2A2A28" text-anchor="middle">我</text>
+<rect x="600" y="346" width="76" height="44" rx="7" fill="#F2F0EB" stroke="#D8D4CC"/><text x="638" y="376" font-size="22" fill="#2A2A28" text-anchor="middle">去</text>
+</g>
+<path d="M200,344 L200,336 L516,336 L516,344" fill="none" stroke="#B4AFA4" stroke-width="2"/>
+<text x="358" y="330" font-size="12.5" font-weight="500" fill="#5C574E" text-anchor="middle">window = 4 → set {天 气 很 好}, any order</text>
+
+<!-- ================= PANEL 3: bridge ================= -->
+<rect x="16" y="412" width="668" height="164" rx="12" fill="#FDF3F1" stroke="#F4DBD6"/>
+<text x="28" y="442" font-size="16" font-weight="500" fill="#7F1D1D" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">bridge</text>
+<rect x="576" y="426" width="96" height="24" rx="12" fill="#FBE7E4" stroke="#C0392B"/>
+<text x="624" y="442" font-size="12.5" font-weight="500" fill="#7F1D1D" text-anchor="middle">✗ hurts</text>
+<text x="28" y="464" font-size="13" fill="#8A473F">given now + a soft (fuzzy) future anchor, reconstruct the span in between</text>
+<g>
+<rect x="40" y="516" width="76" height="44" rx="7" fill="#F2F0EB" stroke="#D8D4CC"/><text x="78" y="546" font-size="22" fill="#2A2A28" text-anchor="middle">今</text>
+<rect x="120" y="516" width="76" height="44" rx="7" fill="#E6F1FB" stroke="#0C447C"/><text x="158" y="546" font-size="22" fill="#0C447C" text-anchor="middle">天</text><text x="158" y="573" font-size="11" fill="#0C447C" text-anchor="middle">now t</text>
+<rect x="200" y="516" width="76" height="44" rx="7" fill="#FBE7E4" stroke="#C0392B"/><text x="238" y="546" font-size="22" fill="#7F1D1D" text-anchor="middle">天</text>
+<rect x="280" y="516" width="76" height="44" rx="7" fill="#FBE7E4" stroke="#C0392B"/><text x="318" y="546" font-size="22" fill="#7F1D1D" text-anchor="middle">气</text>
+<rect x="360" y="516" width="76" height="44" rx="7" fill="#FBE7E4" stroke="#C0392B"/><text x="398" y="546" font-size="22" fill="#7F1D1D" text-anchor="middle">很</text>
+<rect x="440" y="516" width="76" height="44" rx="7" fill="#FDF3F1" stroke="#C0392B" stroke-dasharray="4 3"/><text x="478" y="546" font-size="22" fill="#7F1D1D" text-anchor="middle">好</text><text x="478" y="573" font-size="11" fill="#7F1D1D" text-anchor="middle">soft anchor</text>
+<rect x="520" y="516" width="76" height="44" rx="7" fill="#F2F0EB" stroke="#D8D4CC"/><text x="558" y="546" font-size="22" fill="#2A2A28" text-anchor="middle">我</text>
+<rect x="600" y="516" width="76" height="44" rx="7" fill="#F2F0EB" stroke="#D8D4CC"/><text x="638" y="546" font-size="22" fill="#2A2A28" text-anchor="middle">去</text>
+</g>
+<path d="M158,514 Q220,492 288,512" fill="none" stroke="#C0392B" stroke-width="2" marker-end="url(#ared)"/>
+<path d="M478,514 Q416,492 348,512" fill="none" stroke="#C0392B" stroke-width="2" marker-end="url(#ared)"/>
+<text x="318" y="498" font-size="12.5" font-weight="500" fill="#7F1D1D" text-anchor="middle">fill the span between</text>
+</svg>

@@ -13,6 +13,8 @@ The model is a causal decoder with auxiliary heads:
 - **`order_free`**: predicts the unordered *set* of tokens in a future window.
 - **`bridge`**: uses the current hidden state plus soft future-anchor embeddings to reconstruct the span between the current position and a future anchor.
 
+![The three FAOF auxiliary heads: anchor predicts the single token k steps ahead, order_free predicts the unordered set of tokens in a future window, bridge reconstructs the span up to a soft future anchor.](docs/faof-heads.svg)
+
 The default smoke config is tiny and only proves that the data, losses, and evaluation loop work. Use `configs/mvp_120m.json` as the starting point for a real 100M-scale run on a GPU machine.
 
 ## Results (probe-corrected)
@@ -198,6 +200,8 @@ uv run python scripts/mix_corpora.py \
 - **`anchor`**：预测偏移 `2, 4, 8, 16` 处的未来 token。
 - **`order_free`**：预测未来窗口内 token 的无序*集合*。
 - **`bridge`**：利用当前隐状态加上软未来锚点嵌入，重建当前位置与未来锚点之间的跨度。
+
+![FAOF 的三个辅助头：anchor 预测第 k 步之后的那一个 token，order_free 预测未来窗口内 token 的无序集合，bridge 重建当前位置到软未来锚点之间的跨度。](docs/faof-heads.svg)
 
 默认 smoke 配置非常小，仅用于验证数据、损失和评估流程能跑通。在 GPU 机器上做真正的 1 亿参数级训练时，请以 `configs/mvp_120m.json` 为起点。
 
